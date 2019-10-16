@@ -5,3 +5,4 @@
 /symantecbeat
 /symantecbeat.test
 *.pyc
+/symantecbeat2.yml

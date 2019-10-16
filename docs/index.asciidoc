@@ -1,0 +1,5 @@
+= Symantecbeat Docs
+
+Welcome to the Symantecbeat documentation.
+
+

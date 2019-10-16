@@ -1,0 +1,12 @@
+################### Symantecbeat Configuration Example #########################
+
+############################# Symantecbeat ######################################
+
+symantecbeat:
+  # Defines how often an event is sent to the output
+  period: 1s
+  url: https://usea1.r3.securitycloud.symantec.com/r3_epmp_i
+  customer_id: "your customer id"
+  domain_id: "your domain id"
+  client_id: "your client id"
+  client_sercret: "your client secret"

@@ -1,6 +1,7 @@
 # Symantecbeat
 
 Welcome to Symantecbeat.
+It consumes https://apidocs.symantec.com/home/sep_15
 
 Ensure that this folder is at the following location:
 `${GOPATH}/src/github.com/marian-craciunescu/symantecbeat`

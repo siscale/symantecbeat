@@ -10,3 +10,6 @@ symantecbeat:
   domain_id: "your domain id"
   client_id: "your client id"
   client_sercret: "your client secret"
+  batch_size: 1000
+  #start date as period from now.IE now-1h
+  start_date: 1h

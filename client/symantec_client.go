@@ -31,6 +31,8 @@ type SymantecClient struct {
 
 func NewSymantecClient(apiURL, customerID, domainID, clientID, clientSecret string) SymantecClient {
 
+	fmt.Printf("Using \ncustomerID=%s\ndomainID=%s\nclientID=%s\nclientSecret=%s\n", customerID, domainID, clientID, clientSecret)
+
 	return SymantecClient{
 		ApiURL:       apiURL,
 		CustomerID:   customerID,
@@ -135,9 +137,9 @@ func (s *SymantecClient) getData(jsonValue []byte) ([]byte, error) {
 
 	}
 
-	fmt.Println("Server response=", resp.StatusCode)
+	s.logger.Debugf("Server response=%i", resp.StatusCode)
 	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		s.logger.Error(err)
 		return nil, err
 	}
@@ -153,7 +155,6 @@ func (s *SymantecClient) getData(jsonValue []byte) ([]byte, error) {
 func (s *SymantecClient) DoRequest(start, end time.Time, t EventType, size int) (mapStrArr []common.MapStr, err error) {
 
 	logp.Info("DoRequest for event=%s", t.String())
-	fmt.Printf("DoRequest for event=%s", t.String())
 
 	requestBody, err := NewEventEncoded(start, end, size, t)
 	if err != nil {
@@ -199,8 +200,7 @@ func (s *SymantecClient) DoRequest(start, end time.Time, t EventType, size int) 
 
 		batches++
 	}
-	logp.Info("For type=%s  got %d in %d  batches", t.String(), noOfEvents, batches)
-	fmt.Printf("\nFor type=%s  got %d in %d  batches\n", t.String(), noOfEvents, batches)
+	s.logger.Infof("For type=%s  got %d in %d  batches", t.String(), noOfEvents, batches)
 	return mapStrArr, nil
 }
 

@@ -34,7 +34,7 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 		done:     make(chan struct{}),
 		config:   c,
 		smClient: sm,
-		lastRun:  c.StartDate,
+		lastRun:  time.Now().UTC().Add(-1 * c.StartDate),
 	}
 	return bt, nil
 }
@@ -42,6 +42,7 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 // Run starts symantecbeat.
 func (bt *Symantecbeat) Run(b *beat.Beat) error {
 	logp.Info("symantecbeat is running! Hit CTRL-C to stop it.")
+	fmt.Println("symantecbeat is running! Hit CTRL-C to stop it.")
 
 	var err error
 	bt.client, err = b.Publisher.Connect()
@@ -56,6 +57,7 @@ func (bt *Symantecbeat) Run(b *beat.Beat) error {
 			return nil
 		case <-ticker.C:
 			{
+				logp.Info("Starting ticker cycle at", time.Now().Format(time.RFC3339))
 				err := bt.smClient.GetOauthToken()
 				if err != nil {
 					logp.Err("Error getting the accesToken.Check credentials", err.Error())
@@ -71,17 +73,15 @@ func (bt *Symantecbeat) Run(b *beat.Beat) error {
 					} else {
 						for _, mapStr := range mapStrArr {
 							ts := time.Now()
-							tsa, err := mapStr.GetValue("timestamp")
+
 							if err == nil {
-								ts, err = time.Parse("2006-01-02T15:04:05.999Z", tsa.(string))
-								if err == nil {
-									event := beat.Event{
-										Timestamp: ts,
-										Fields:    mapStr,
-									}
-									bt.client.Publish(event)
+								event := beat.Event{
+									Timestamp: ts,
+									Fields:    mapStr,
 								}
+								bt.client.Publish(event)
 							}
+
 						}
 
 					}

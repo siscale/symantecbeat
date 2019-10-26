@@ -1,7 +1,10 @@
 # Symantecbeat
 
 Welcome to Symantecbeat.
-It consumes https://apidocs.symantec.com/home/sep_15
+It consumes the REST API exposed by Symantec Endpoint Protection.See the docs https://apidocs.symantec.com/home/sep_15
+
+Docker Image available at https://hub.docker.com/r/mariancraciunescu/symantecbeat
+
 
 Ensure that this folder is at the following location:
 `${GOPATH}/src/github.com/marian-craciunescu/symantecbeat`

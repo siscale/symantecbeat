@@ -38,6 +38,8 @@ install:
   - true
 
 script:
+  - make clean
+  - mage fmt update
   - make $TARGETS
 
 deploy:

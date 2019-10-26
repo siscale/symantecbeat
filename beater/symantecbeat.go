@@ -1,9 +1,27 @@
+// Licensed to Elasticsearch B.V. under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. Elasticsearch B.V. licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package beater
 
 import (
 	"fmt"
-	"github.com/marian-craciunescu/symantecbeat/client"
 	"time"
+
+	"github.com/marian-craciunescu/symantecbeat/client"
 
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
@@ -27,7 +45,7 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	if err := cfg.Unpack(&c); err != nil {
 		return nil, fmt.Errorf("Error reading config file: %v", err)
 	}
-	logp.Info("using config %s", c)
+	logp.Info("using config %v", c)
 	sm := client.NewSymantecClient(c.ApiURL, c.CustomerID, c.DomainID, c.ClientID, c.ClientSecret)
 
 	bt := &Symantecbeat{
@@ -42,7 +60,6 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 // Run starts symantecbeat.
 func (bt *Symantecbeat) Run(b *beat.Beat) error {
 	logp.Info("symantecbeat is running! Hit CTRL-C to stop it.")
-	fmt.Println("symantecbeat is running! Hit CTRL-C to stop it.")
 
 	var err error
 	bt.client, err = b.Publisher.Connect()
@@ -57,10 +74,10 @@ func (bt *Symantecbeat) Run(b *beat.Beat) error {
 			return nil
 		case <-ticker.C:
 			{
-				logp.Info("Starting ticker cycle at", time.Now().Format(time.RFC3339))
+				logp.Info("Starting ticker cycle at time=%s", time.Now().Format(time.RFC3339))
 				err := bt.smClient.GetOauthToken()
 				if err != nil {
-					logp.Err("Error getting the accesToken.Check credentials", err.Error())
+					logp.Err("Error getting the accesToken.Check credentials error=%s", err.Error())
 					continue
 				}
 
@@ -73,7 +90,6 @@ func (bt *Symantecbeat) Run(b *beat.Beat) error {
 					} else {
 						for _, mapStr := range mapStrArr {
 							ts := time.Now()
-
 							if err == nil {
 								event := beat.Event{
 									Timestamp: ts,
@@ -96,6 +112,6 @@ func (bt *Symantecbeat) Run(b *beat.Beat) error {
 
 // Stop stops symantecbeat.
 func (bt *Symantecbeat) Stop() {
-	bt.client.Close()
+	_ = bt.client.Close()
 	close(bt.done)
 }

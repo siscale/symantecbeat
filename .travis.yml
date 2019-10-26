@@ -40,5 +40,10 @@ install:
 script:
   - make $TARGETS
 
+deploy:
+  provider: script
+  script: bash docker_push
+  on:
+    branch: master
 after_success:
   # Copy full.cov to coverage.txt because codecov.io requires this file

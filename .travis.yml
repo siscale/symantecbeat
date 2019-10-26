@@ -38,7 +38,7 @@ install:
   - true
 
 script:
-  - make clean
+  - make
   - mage fmt update
   - make $TARGETS
 

@@ -15,29 +15,38 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Config is put into a different package to prevent cyclic imports in case
-// it is needed in several locations
+package client
 
-package config
+import (
+	"encoding/json"
+	"time"
+)
 
-import "time"
+const timeFormatSearch = "2006-01-02T15:04:05.000+00:00"
 
-type Config struct {
-	Period       time.Duration `config:"period"`
-	ApiURL       string        `config:"url"`
-	CustomerID   string        `config:"customer_id"`
-	DomainID     string        `config:"domain_id"`
-	ClientID     string        `config:"client_id"`
-	ClientSecret string        `config:"client_secret"`
-	BatchSize    int           `config:"batch_size"`
-	StartDate    time.Duration `config:"start_date"`
-	QueryType    int           `config:"query_type"`
+type eventSearchRequest struct {
+	Limit      int    `json:"limit"`
+	EventsType string `json:"feature_name"`
+	StartDate  string `json:"start_date"`
+	EndDate    string `json:"end_date"`
+	Product    string `json:"product"`
+	Next       int    `json:"next"`
 }
 
-var DefaultConfig = Config{
-	QueryType: 1,
-	Period:    5 * time.Minute,
-	StartDate: 60 * time.Minute,
-	BatchSize: 1000,
-	ApiURL:    "https://usea1.r3.securitycloud.symantec.com/r3_epmp_i",
+func NewEventSearchEncoded(s, end time.Time, size, next int, t EventType) ([]byte, error) {
+	event := eventSearchRequest{
+		StartDate:  s.UTC().Format(timeFormatSearch),
+		EndDate:    end.UTC().Format(timeFormatSearch),
+		Limit:      size,
+		Next:       next,
+		EventsType: t.String(),
+		Product:    "SAEP",
+	}
+
+	jsonValue, err := json.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonValue, nil
 }

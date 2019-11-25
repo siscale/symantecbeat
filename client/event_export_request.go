@@ -15,29 +15,34 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Config is put into a different package to prevent cyclic imports in case
-// it is needed in several locations
+package client
 
-package config
+import (
+	"encoding/json"
+	"time"
+)
 
-import "time"
+const timeFormat = "2006-01-02T15:04:05.999Z"
 
-type Config struct {
-	Period       time.Duration `config:"period"`
-	ApiURL       string        `config:"url"`
-	CustomerID   string        `config:"customer_id"`
-	DomainID     string        `config:"domain_id"`
-	ClientID     string        `config:"client_id"`
-	ClientSecret string        `config:"client_secret"`
-	BatchSize    int           `config:"batch_size"`
-	StartDate    time.Duration `config:"start_date"`
-	QueryType    int           `config:"query_type"`
+type eventExportRequest struct {
+	BatchSize  int    `json:"batchSize"`
+	EventsType string `json:"type"`
+	StartDate  string `json:"startDate"`
+	EndDate    string `json:"endDate"`
 }
 
-var DefaultConfig = Config{
-	QueryType: 1,
-	Period:    5 * time.Minute,
-	StartDate: 60 * time.Minute,
-	BatchSize: 1000,
-	ApiURL:    "https://usea1.r3.securitycloud.symantec.com/r3_epmp_i",
+func NewEventExportEncoded(s, end time.Time, size int, t EventType) ([]byte, error) {
+	event := eventExportRequest{
+		StartDate:  s.Format(timeFormat),
+		EndDate:    end.Format(timeFormat),
+		BatchSize:  size,
+		EventsType: t.String(),
+	}
+
+	jsonValue, err := json.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonValue, nil
 }

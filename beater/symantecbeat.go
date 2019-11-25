@@ -82,28 +82,42 @@ func (bt *Symantecbeat) Run(b *beat.Beat) error {
 				}
 
 				end := time.Now().UTC()
-				for eventType := range client.AllTypes {
-					t := client.EventType(eventType)
-					mapStrArr, err := bt.smClient.DoRequest(bt.lastRun, end, t, bt.config.BatchSize)
-					if err != nil {
-						logp.Err("Error while doing request.Err=%s", err.Error())
-					} else {
-						for _, mapStr := range mapStrArr {
-							ts := time.Now()
-							if err == nil {
-								event := beat.Event{
-									Timestamp: ts,
-									Fields:    mapStr,
-								}
-								bt.client.Publish(event)
-							}
-
-						}
-
-					}
+				logp.Info("Getting all event ticker cycle lastRun=%s end=%s", bt.lastRun.Format(time.RFC3339), end.Format(time.RFC3339))
+				if bt.config.QueryType == 0 {
+					bt.retrieveExportEvents(end)
+				} else {
+					mapStrArr, err := bt.smClient.DoRetrieveSearchEvents(bt.lastRun, end, bt.config.BatchSize)
+					bt.publishEvents(err, mapStrArr)
 				}
 				bt.lastRun = end
+				logp.Info("End ticker cycle lastRun=%s", bt.lastRun.Format(time.RFC3339))
 			}
+
+		}
+
+	}
+}
+
+func (bt *Symantecbeat) retrieveExportEvents(end time.Time) {
+	for eventType := range client.AllTypes {
+		t := client.EventType(eventType)
+		mapStrArr, err := bt.smClient.DoExportRequest(bt.lastRun, end, t, bt.config.BatchSize)
+		bt.publishEvents(err, mapStrArr)
+	}
+}
+
+func (bt *Symantecbeat) publishEvents(err error, mapStrArr []common.MapStr) {
+	if err != nil {
+		logp.Err("Error while doing request.Err=%s", err.Error())
+	} else {
+		for _, mapStr := range mapStrArr {
+			ts := time.Now()
+
+			event := beat.Event{
+				Timestamp: ts,
+				Fields:    mapStr,
+			}
+			bt.client.Publish(event)
 
 		}
 

@@ -33,8 +33,8 @@ import (
 )
 
 const (
-	loginURL = "/oauth2/tokens"
-	eventURL = "/sccs/v1/events/export"
+	loginURL       = "/oauth2/tokens"
+	eventExportURL = "/sccs/v1/events/export"
 )
 
 type SymantecClient struct {
@@ -129,15 +129,15 @@ type oauthResponse struct {
 	Expires   int    `json:"expires_in"`
 }
 
-func (s *SymantecClient) getData(jsonValue []byte) ([]byte, error) {
+func (s *SymantecClient) getExportData(jsonValue []byte) ([]byte, error) {
 
 	client := &http.Client{}
 
-	uri := s.ApiURL + eventURL
+	uri := s.ApiURL + eventExportURL
 
 	req, err := http.NewRequest(http.MethodPost, uri, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		s.logger.Error(err)
+		s.logger.Errorf("Error doing new request %v", err)
 		return nil, err
 	}
 
@@ -155,41 +155,50 @@ func (s *SymantecClient) getData(jsonValue []byte) ([]byte, error) {
 
 	}
 
+	s.logger.Infof("Server response=%i body=%s", resp.StatusCode, string(jsonValue))
 	s.logger.Debugf("Server response=%i", resp.StatusCode)
 	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		s.logger.Error(err)
+	if err != nil {
+		s.logger.Errorf("Error doing request to server err=%v", err)
 		return nil, err
 	}
 	err = resp.Body.Close()
+
 	if err != nil {
 		s.logger.Error(err)
 		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Infof("HTTP non2xx.StatusCode=%d,status=%s body=%s",
+			resp.StatusCode, resp.Status, string(body))
+		return body, nil
 	}
 
 	return body, nil
 }
 
-func (s *SymantecClient) DoRequest(start, end time.Time, t EventType, size int) (mapStrArr []common.MapStr, err error) {
+func (s *SymantecClient) DoExportRequest(start, end time.Time, t EventType, size int) (mapStrArr []common.MapStr, err error) {
 
-	logp.Info("DoRequest for event=%s", t.String())
+	s.logger.Infof("DoExportRequest for event=%s", t.String())
 
-	requestBody, err := NewEventEncoded(start, end, size, t)
+	requestBody, err := NewEventExportEncoded(start, end, size, t)
 	if err != nil {
-		fmt.Println(err)
+		s.logger.Errorf("error encoding export event as  json err=%s", err.Error())
+		return nil, err
 	}
 
 	batches := 0
 	noOfEvents := 0
 	for {
-		response, err := s.getData(requestBody)
+		response, err := s.getExportData(requestBody)
 		if err != nil {
 			logp.Err("error doing  request %s", err.Error())
 			return nil, err
 		}
 
 		if len(response) == 0 || string(response) == "[]" {
-			fmt.Println("Finished request no_of_batches", batches)
+			logp.Info("Finished request no_of_batches=%d ", batches)
 			break
 		} else {
 			reader := bytes.NewReader(response)
@@ -222,6 +231,103 @@ func (s *SymantecClient) DoRequest(start, end time.Time, t EventType, size int) 
 	return mapStrArr, nil
 }
 
+func (s *SymantecClient) getSearchData(jsonValue []byte) ([]byte, error) {
+
+	client := &http.Client{}
+
+	uri := "https://api.sep.securitycloud.symantec.com/v1/event-search"
+
+	req, err := http.NewRequest(http.MethodPost, uri, bytes.NewBuffer(jsonValue))
+	if err != nil {
+		s.logger.Errorf("Error doing new request %v", err)
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", s.oauthToken))
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("x-epmp-domain-id", s.DomainID)
+	req.Header.Add("x-epmp-customer-id", s.CustomerID)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		s.logger.Error(err)
+		return nil, err
+
+	}
+
+	s.logger.Infof("Server response=%i body=%s", resp.StatusCode, string(jsonValue))
+	s.logger.Debugf("Server response=%i", resp.StatusCode)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Errorf("Error doing request to server err=%v", err)
+		return nil, err
+	}
+	err = resp.Body.Close()
+
+	if err != nil {
+		s.logger.Error(err)
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Infof("HTTP non2xx.StatusCode=%d,status=%s body=%s",
+			resp.StatusCode, resp.Status, string(body))
+		return body, nil
+	}
+
+	return body, nil
+}
+
+func (s *SymantecClient) DoRetrieveSearchEvents(start time.Time, end time.Time, size int) (mapStrArr []common.MapStr, err error) {
+	s.logger.Infof("DoExportRequest for ALL ")
+	next := 0
+	noOfEvents := 0
+	batches := 0
+	for {
+		requestBody, err := NewEventSearchEncoded(start, end, size, next, ALL)
+		if err != nil {
+			s.logger.Errorf("error encoding search event as  json err=%s", err.Error())
+			return nil, err
+		}
+
+		body, err := s.getSearchData(requestBody)
+		if err != nil {
+			logp.Err("error doing search request %s", err.Error())
+			return nil, err
+		}
+
+		var event eventResponse
+		err = json.Unmarshal(body, &event)
+		if err != nil {
+			s.logger.Errorf("error decoding search response json  err=%s", err.Error())
+			return nil, err
+
+		}
+		no_of_batch_event := 0
+		for i := range event.Events {
+			newMap := event.Events[i]
+			mapStr, err := transformToMapStr(newMap)
+			if err != nil {
+				return nil, err
+			} else {
+				mapStrArr = append(mapStrArr, mapStr)
+				no_of_batch_event++
+			}
+		}
+		noOfEvents += no_of_batch_event
+		s.logger.Infof("Total no_of_event=%d next=%d", noOfEvents, next)
+		next += no_of_batch_event
+		batches++
+		if event.Total <= next {
+			break
+		}
+
+	}
+	s.logger.Infof("Got no_of_event=%d in batches=%d", noOfEvents, batches)
+	return mapStrArr, nil
+}
+
 func transformToMapStr(intialMap map[string]interface{}) (common.MapStr, error) {
 	mapStr := common.MapStr{}
 	for k := range intialMap {
@@ -232,4 +338,10 @@ func transformToMapStr(intialMap map[string]interface{}) (common.MapStr, error) 
 		}
 	}
 	return mapStr, nil
+}
+
+type eventResponse struct {
+	Total  int                      `json:"total"`
+	Next   int                      `json:"next"`
+	Events []map[string]interface{} `json:"events"`
 }

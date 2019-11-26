@@ -9,10 +9,12 @@ symantecbeat:
   customer_id: "your customer id"
   domain_id: "your domain id"
   client_id: "your client id"
-  client_sercret: "your client secret"
+  client_secret: "your client secret"
   batch_size: 1000
   #start date as period from now.IE Default now-1h
   start_date: 1h
   # 0 for deprecated https://usea1.r3.securitycloud.symantec.com/r3_epmp_i/sccs/v1/events/export endpoint
   # 1 for https://api.sep.securitycloud.symantec.com/v1/event-search endpoint
   query_type: 1
+
+  ecs_file_path: /plugin/ecs_translating_mapping.csv

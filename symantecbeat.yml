@@ -4,15 +4,17 @@
 
 symantecbeat:
   # Defines how often an event is sent to the output
-  period: 1s
+  period: 10s
   url: https://usea1.r3.securitycloud.symantec.com/r3_epmp_i
-  customer_id: "your customer id"
-  domain_id: "your domain id"
-  client_id: "your client id"
-  client_sercret: "your client secret"
+  customer_id: "customer_id"
+  domain_id: "domain-id"
+  client_id: "client-id"
+  client_secret: "secret"
   batch_size: 1000
   #start date as period from now.IE now-1h
   start_date: 1h
+  query_type: 1
+  ecs_file_path: ecs/ecs_translating_mapping.csv
 
 #================================ General =====================================
 

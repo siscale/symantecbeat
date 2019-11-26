@@ -19,6 +19,7 @@ package beater
 
 import (
 	"fmt"
+	"github.com/marian-craciunescu/symantecbeat/ecs"
 	"time"
 
 	"github.com/marian-craciunescu/symantecbeat/client"
@@ -46,7 +47,11 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 		return nil, fmt.Errorf("Error reading config file: %v", err)
 	}
 	logp.Info("using config %v", c)
-	sm := client.NewSymantecClient(c.ApiURL, c.CustomerID, c.DomainID, c.ClientID, c.ClientSecret)
+	ecsMapper, err := ecs.NewMapper(c.EcsFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading ecs csv mapping file: %v", err)
+	}
+	sm := client.NewSymantecClient(c.ApiURL, c.CustomerID, c.DomainID, c.ClientID, c.ClientSecret, ecsMapper)
 
 	bt := &Symantecbeat{
 		done:     make(chan struct{}),

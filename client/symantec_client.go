@@ -22,6 +22,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/marian-craciunescu/symantecbeat/ecs"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -44,10 +45,11 @@ type SymantecClient struct {
 	ClientID     string
 	ClientSecret string
 	oauthToken   string
+	mapper       *ecs.Mapper
 	logger       *logp.Logger
 }
 
-func NewSymantecClient(apiURL, customerID, domainID, clientID, clientSecret string) SymantecClient {
+func NewSymantecClient(apiURL, customerID, domainID, clientID, clientSecret string, mapper *ecs.Mapper) SymantecClient {
 
 	fmt.Printf("Using \ncustomerID=%s\ndomainID=%s\nclientID=%s\nclientSecret=%s\n", customerID, domainID, clientID, clientSecret)
 
@@ -57,6 +59,7 @@ func NewSymantecClient(apiURL, customerID, domainID, clientID, clientSecret stri
 		DomainID:     domainID,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
+		mapper:       mapper,
 		logger:       logp.NewLogger("symantec_client"),
 	}
 
@@ -193,12 +196,12 @@ func (s *SymantecClient) DoExportRequest(start, end time.Time, t EventType, size
 	for {
 		response, err := s.getExportData(requestBody)
 		if err != nil {
-			logp.Err("error doing  request %s", err.Error())
+			s.logger.Errorf("error doing  request %s", err.Error())
 			return nil, err
 		}
 
 		if len(response) == 0 || string(response) == "[]" {
-			logp.Info("Finished request no_of_batches=%d ", batches)
+			s.logger.Infof("Finished request no_of_batches=%d ", batches)
 			break
 		} else {
 			reader := bytes.NewReader(response)
@@ -208,17 +211,16 @@ func (s *SymantecClient) DoExportRequest(start, end time.Time, t EventType, size
 			if err := dec.Decode(&m); err == io.EOF {
 				break
 			} else if err != nil {
-				logp.Err("error decoding json response err=%s", err.Error())
+				s.logger.Errorf("error decoding json response err=%s", err.Error())
 				return nil, err
 			}
 
 			for i := range m {
 				newMap := m[i]
-				mapStr, err := transformToMapStr(newMap)
+				mapStr, err := s.transformToMapStr(newMap)
 				if err != nil {
 					return nil, err
 				} else {
-					mapStr.Put("event_type", t.String())
 					mapStrArr = append(mapStrArr, mapStr)
 					noOfEvents++
 				}
@@ -251,7 +253,7 @@ func (s *SymantecClient) getSearchData(jsonValue []byte) ([]byte, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		s.logger.Error(err)
+		s.logger.Errorf("Error doing POST err=%v", err)
 		return nil, err
 
 	}
@@ -280,7 +282,7 @@ func (s *SymantecClient) getSearchData(jsonValue []byte) ([]byte, error) {
 }
 
 func (s *SymantecClient) DoRetrieveSearchEvents(start time.Time, end time.Time, size int) (mapStrArr []common.MapStr, err error) {
-	s.logger.Infof("DoExportRequest for ALL ")
+	s.logger.Infof("DoRetrieveSearchEvents for ALL events type")
 	next := 0
 	noOfEvents := 0
 	batches := 0
@@ -304,20 +306,20 @@ func (s *SymantecClient) DoRetrieveSearchEvents(start time.Time, end time.Time, 
 			return nil, err
 
 		}
-		no_of_batch_event := 0
+		noOfBatchEvent := 0
 		for i := range event.Events {
 			newMap := event.Events[i]
-			mapStr, err := transformToMapStr(newMap)
+			mapStr, err := s.transformToMapStr(newMap)
 			if err != nil {
 				return nil, err
 			} else {
 				mapStrArr = append(mapStrArr, mapStr)
-				no_of_batch_event++
+				noOfBatchEvent++
 			}
 		}
-		noOfEvents += no_of_batch_event
+		noOfEvents += noOfBatchEvent
 		s.logger.Infof("Total no_of_event=%d next=%d", noOfEvents, next)
-		next += no_of_batch_event
+		next += noOfBatchEvent
 		batches++
 		if event.Total <= next {
 			break
@@ -328,10 +330,12 @@ func (s *SymantecClient) DoRetrieveSearchEvents(start time.Time, end time.Time, 
 	return mapStrArr, nil
 }
 
-func transformToMapStr(intialMap map[string]interface{}) (common.MapStr, error) {
+func (s *SymantecClient) transformToMapStr(intialMap map[string]interface{}) (common.MapStr, error) {
 	mapStr := common.MapStr{}
 	for k := range intialMap {
-		_, err := mapStr.Put(k, intialMap[k])
+		//if field exist in mapping csv add it
+		ecsField := s.mapper.EcsField(k)
+		_, err := mapStr.Put(ecsField, intialMap[k])
 		if err != nil {
 			logp.Err("error puting field in map err=%s", err.Error())
 			return nil, err

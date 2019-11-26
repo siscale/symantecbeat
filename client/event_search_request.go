@@ -34,6 +34,7 @@ type eventSearchRequest struct {
 }
 
 func NewEventSearchEncoded(s, end time.Time, size, next int, t EventType) ([]byte, error) {
+	end = end.Add(-1 * 10 * time.Second)
 	event := eventSearchRequest{
 		StartDate:  s.UTC().Format(timeFormatSearch),
 		EndDate:    end.UTC().Format(timeFormatSearch),

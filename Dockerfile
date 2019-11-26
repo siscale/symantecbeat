@@ -21,6 +21,7 @@ RUN mkdir /plugin
 COPY symantecbeat.yml /plugin/
 #COPY fields.yml /plugin/
 COPY symantecbeat /plugin/symantecbeat
+COPY ecs/ecs_translating_mapping.csv /plugin/ecs_translating_mapping.csv
 
 WORKDIR /plugin
 

@@ -32,12 +32,14 @@ type Config struct {
 	BatchSize    int           `config:"batch_size"`
 	StartDate    time.Duration `config:"start_date"`
 	QueryType    int           `config:"query_type"`
+	EcsFilePath  string        `config:"ecs_file_path"`
 }
 
 var DefaultConfig = Config{
-	QueryType: 1,
-	Period:    5 * time.Minute,
-	StartDate: 60 * time.Minute,
-	BatchSize: 1000,
-	ApiURL:    "https://usea1.r3.securitycloud.symantec.com/r3_epmp_i",
+	QueryType:   1,
+	Period:      5 * time.Minute,
+	StartDate:   60 * time.Minute,
+	BatchSize:   1000,
+	ApiURL:      "https://usea1.r3.securitycloud.symantec.com/r3_epmp_i",
+	EcsFilePath: "/plugin/ecs_translating_mapping.csv",
 }

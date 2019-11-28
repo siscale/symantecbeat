@@ -323,18 +323,34 @@ func (s *SymantecClient) DoRetrieveSearchEvents(start time.Time, end time.Time, 
 	return mapStrArr, nil
 }
 
-func (s *SymantecClient) transformToMapStr(intialMap map[string]interface{}) (common.MapStr, error) {
+func (s *SymantecClient) transformToMapStr(initialMap map[string]interface{}) (common.MapStr, error) {
 	mapStr := common.MapStr{}
-	for k := range intialMap {
-		//if field exist in mapping csv add it
-		ecsField := s.mapper.EcsField(k)
-		_, err := mapStr.Put(ecsField, intialMap[k])
-		if err != nil {
-			logp.Err("error puting field in map err=%s", err.Error())
-			return nil, err
+	s.recurseAndNormalizeMap("", mapStr, initialMap)
+	return mapStr, nil
+}
+
+func (s *SymantecClient) recurseAndNormalizeMap(parentKey string, result common.MapStr, initialMap map[string]interface{}) {
+
+	for k := range initialMap {
+		switch innerType := initialMap[k].(type) {
+		case map[string]interface{}:
+			{
+				parentKey := fmt.Sprintf("%s.", k)
+				s.recurseAndNormalizeMap(parentKey, result, innerType)
+			}
+		case float32, float64, int, int8, int16, int32, int64, string, bool:
+			actualKey := parentKey + k
+			ecsField := s.mapper.EcsField(actualKey)
+
+			_, err := result.Put(ecsField, initialMap[k])
+			if err != nil {
+				logp.Err("error puting field in map err=%s", err.Error())
+			}
+		default:
+			fmt.Println(innerType)
 		}
 	}
-	return mapStr, nil
+
 }
 
 type eventResponse struct {

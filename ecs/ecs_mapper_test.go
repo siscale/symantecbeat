@@ -33,6 +33,9 @@ func TestMapper_Get(t *testing.T) {
 	ecsKey := mapper.EcsField("connection.src_name")
 	a.Equal("source.host.name", ecsKey)
 
+	ecsKey2 := mapper.EcsField("connection.dst_ip")
+	a.Equal("destination.ip", ecsKey2)
+
 	nonEcsKey := mapper.EcsField("feature_name")
 	a.Equal("feature_name", nonEcsKey)
 }

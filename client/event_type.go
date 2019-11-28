@@ -1,5 +1,6 @@
 package client
 
+// EventType for types of request supported by Symantec Endpoint
 type EventType int
 
 const (

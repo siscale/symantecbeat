@@ -31,6 +31,7 @@ type eventExportRequest struct {
 	EndDate    string `json:"endDate"`
 }
 
+// NewEventExportEncoded create a []byte json encoded for doing a deprecated export request
 func NewEventExportEncoded(s, end time.Time, size int, t EventType) ([]byte, error) {
 	event := eventExportRequest{
 		StartDate:  s.Format(timeFormat),

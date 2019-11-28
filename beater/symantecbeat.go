@@ -51,7 +51,7 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error reading ecs csv mapping file: %v", err)
 	}
-	sm := client.NewSymantecClient(c.ApiURL, c.CustomerID, c.DomainID, c.ClientID, c.ClientSecret, ecsMapper)
+	sm := client.NewSymantecClient(c.CustomerID, c.DomainID, c.ClientID, c.ClientSecret, ecsMapper)
 
 	bt := &Symantecbeat{
 		done:     make(chan struct{}),
@@ -92,7 +92,13 @@ func (bt *Symantecbeat) Run(b *beat.Beat) error {
 					bt.retrieveExportEvents(end)
 				} else {
 					mapStrArr, err := bt.smClient.DoRetrieveSearchEvents(bt.lastRun, end, bt.config.BatchSize)
-					bt.publishEvents(err, mapStrArr)
+					if err == nil {
+						bt.publishEvents(err, mapStrArr)
+					} else {
+						logp.Info("Error retrieving search event")
+						end = bt.lastRun
+					}
+
 				}
 				bt.lastRun = end
 				logp.Info("End ticker cycle lastRun=%s", bt.lastRun.Format(time.RFC3339))

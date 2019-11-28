@@ -24,7 +24,6 @@ import "time"
 
 type Config struct {
 	Period       time.Duration `config:"period"`
-	ApiURL       string        `config:"url"`
 	CustomerID   string        `config:"customer_id"`
 	DomainID     string        `config:"domain_id"`
 	ClientID     string        `config:"client_id"`
@@ -40,6 +39,5 @@ var DefaultConfig = Config{
 	Period:      5 * time.Minute,
 	StartDate:   60 * time.Minute,
 	BatchSize:   1000,
-	ApiURL:      "https://usea1.r3.securitycloud.symantec.com/r3_epmp_i",
 	EcsFilePath: "/plugin/ecs_translating_mapping.csv",
 }

@@ -34,8 +34,9 @@ import (
 )
 
 const (
-	loginURL       = "/oauth2/tokens"
-	eventExportURL = "/sccs/v1/events/export"
+	loginURL       = "https://api.sep.securitycloud.symantec.com/v1/oauth2/tokens"
+	eventExportURL = "https://usea1.r3.securitycloud.symantec.com/r3_epmp_i/sccs/v1/events/export"
+	eventsearchURL = "https://api.sep.securitycloud.symantec.com/v1/event-search"
 )
 
 type SymantecClient struct {
@@ -49,12 +50,11 @@ type SymantecClient struct {
 	logger       *logp.Logger
 }
 
-func NewSymantecClient(apiURL, customerID, domainID, clientID, clientSecret string, mapper *ecs.Mapper) SymantecClient {
+func NewSymantecClient(customerID, domainID, clientID, clientSecret string, mapper *ecs.Mapper) SymantecClient {
 
 	fmt.Printf("Using \ncustomerID=%s\ndomainID=%s\nclientID=%s\nclientSecret=%s\n", customerID, domainID, clientID, clientSecret)
 
 	return SymantecClient{
-		ApiURL:       apiURL,
 		CustomerID:   customerID,
 		DomainID:     domainID,
 		ClientID:     clientID,
@@ -72,7 +72,7 @@ func (s *SymantecClient) GetOauthToken() error {
 
 	fmt.Println(b64Signature)
 
-	uri := s.ApiURL + loginURL
+	uri := loginURL
 
 	data := url.Values{}
 	data.Add("grant_type", "client_credentials")
@@ -136,7 +136,7 @@ func (s *SymantecClient) getExportData(jsonValue []byte) ([]byte, error) {
 
 	client := &http.Client{}
 
-	uri := s.ApiURL + eventExportURL
+	uri := eventExportURL
 
 	req, err := http.NewRequest(http.MethodPost, uri, bytes.NewBuffer(jsonValue))
 	if err != nil {
@@ -237,9 +237,7 @@ func (s *SymantecClient) getSearchData(jsonValue []byte) ([]byte, error) {
 
 	client := &http.Client{}
 
-	uri := "https://api.sep.securitycloud.symantec.com/v1/event-search"
-
-	req, err := http.NewRequest(http.MethodPost, uri, bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequest(http.MethodPost, eventsearchURL, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		s.logger.Errorf("Error doing new request %v", err)
 		return nil, err

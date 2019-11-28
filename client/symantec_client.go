@@ -40,7 +40,6 @@ const (
 )
 
 type SymantecClient struct {
-	ApiURL       string
 	CustomerID   string
 	DomainID     string
 	ClientID     string
@@ -72,13 +71,11 @@ func (s *SymantecClient) GetOauthToken() error {
 
 	fmt.Println(b64Signature)
 
-	uri := loginURL
-
 	data := url.Values{}
 	data.Add("grant_type", "client_credentials")
 	data.Add("scope", "domain")
 
-	req, err := http.NewRequest(http.MethodPost, uri, bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequest(http.MethodPost, loginURL, bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		s.logger.Error(err)
 		return err
@@ -136,9 +133,7 @@ func (s *SymantecClient) getExportData(jsonValue []byte) ([]byte, error) {
 
 	client := &http.Client{}
 
-	uri := eventExportURL
-
-	req, err := http.NewRequest(http.MethodPost, uri, bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequest(http.MethodPost, eventExportURL, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		s.logger.Errorf("Error doing new request %v", err)
 		return nil, err

@@ -9,7 +9,7 @@ Docker Image available at https://hub.docker.com/r/mariancraciunescu/symantecbea
 
 
 Ensure that this folder is at the following location:
-`${GOPATH}/src/github.com/marian-craciunescu/symantecbeat`
+`${GOPATH}/src/github.com/siscale/symantecbeat`
 
 ## Getting Started with Symantecbeat
 
